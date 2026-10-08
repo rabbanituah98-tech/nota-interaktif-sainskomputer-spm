@@ -347,6 +347,42 @@ main{min-width:0; padding:0 clamp(16px, 4vw, 56px) 80px}
 .kadnav .pos{font-family:var(--f-display); font-weight:700; min-width:5em; text-align:center}
 .kadlist{display:none}
 
+/* ---------- Paparan satu topik ---------- */
+body.paged .bab:not(.cur){display:none}
+body.paged .bab.cur .topik:not(.cur), body.paged .bab.cur .kuiz:not(.cur){display:none}
+body.paged[data-view="bab"] .hero, body.paged[data-view="bab"] .howto, body.paged[data-view="bab"] .map,
+body.paged[data-view="kad"] .hero, body.paged[data-view="kad"] .howto, body.paged[data-view="kad"] .map,
+body.paged[data-view="bab"] .kad-sec, body.paged[data-view="home"] .kad-sec{display:none}
+body.paged .bab.cur{margin-top:20px}
+body.paged[data-view="kad"] .kad-sec{margin-top:20px}
+body.paged .bab.cur .topik.cur{margin-top:14px}
+body.paged .bab.cur .kuiz.cur{margin-top:18px}
+.tchips{display:none}
+body.paged .tchips{
+  display:flex; gap:6px; overflow-x:auto; position:sticky; top:var(--top); z-index:20;
+  margin:0 calc(-1 * clamp(16px, 4vw, 56px)); padding:10px clamp(16px, 4vw, 56px);
+  background:var(--paper); border-bottom:1px solid var(--line); scrollbar-width:thin;
+}
+.tchips a{flex-shrink:0; display:inline-flex; align-items:center; gap:4px; min-height:38px; padding:0 14px; border-radius:19px; border:1.5px solid var(--w); color:var(--ink); text-decoration:none; font-family:var(--f-display); font-weight:700; font-size:.9rem; background:var(--raised)}
+.tchips a.done::after{content:"✓"; color:var(--green)}
+.tchips a.cur{background:var(--w); color:var(--on-w)}
+.tchips a.cur.done::after{color:var(--on-w)}
+.tchips a.q{border-style:dashed}
+.pager{display:none}
+body.paged .pager{display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch; margin:28px 0 8px; padding-top:18px; border-top:1px dashed var(--line); max-width:780px}
+.pg{display:flex; flex-direction:column; justify-content:center; gap:2px; min-height:64px; padding:10px 14px; border-radius:12px; border:1.5px solid var(--w); text-decoration:none; color:var(--ink); background:var(--raised); line-height:1.3}
+.pg small{font-size:.78rem; color:var(--ink-3); font-weight:700}
+.pg span{font-family:var(--f-display); font-weight:700; font-size:.95rem}
+.pg.next{text-align:right; background:var(--w); color:var(--on-w); border-color:var(--w)}
+.pg.next small{color:var(--on-w); opacity:.85}
+.pg.none{border:0; background:none}
+.pager .pos{align-self:center; font-family:var(--f-display); font-weight:700; color:var(--ink-3); font-size:.9rem; font-variant-numeric:tabular-nums}
+@media (max-width:560px){
+  body.paged .pager{grid-template-columns:1fr 1fr}
+  .pager .pos{grid-column:1 / -1; grid-row:1; text-align:center}
+  .pg span{font-size:.88rem}
+}
+
 /* ---------- Footer & misc ---------- */
 .foot{margin-top:72px; padding:22px 0; border-top:1px solid var(--line); font-size:.86rem; color:var(--ink-2); max-width:780px}
 .foot p{margin:4px 0}
@@ -444,6 +480,9 @@ main{min-width:0; padding:0 clamp(16px, 4vw, 56px) 80px}
   .kadlist{display:block}
   .foot{break-inside:avoid}
   mark{background:none; color:inherit}
+  :where(body.paged) .bab, :where(body.paged .bab) .topik, :where(body.paged .bab) .kuiz, :where(body.paged) .kad-sec{display:block !important}
+  body.paged .tchips, body.paged .pager, .fab-bab{display:none !important}
+  body.paged .bab{margin-top:0}
   /* mod cetak satu bab / kuiz sahaja */
   body[data-print="bab"] .bab:not(.print-me), body[data-print="bab"] .kad-sec{display:none !important}
   body[data-print="bab"] .bab.print-me{break-before:auto}
@@ -466,6 +505,11 @@ html.is-dark #btnTheme .i-moon{display:none}
 @media (max-width:720px){ .body pre{white-space:pre-wrap; word-break:break-word; font-size:.8rem} }
 
 .namabox{display:none; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:10.5pt; margin:4px 0 10px}
+@media (max-width:720px){
+  body.paged .tchips{padding-top:7px; padding-bottom:7px}
+  .tchips a{min-height:34px; padding:0 12px; font-size:.85rem}
+  main{padding-bottom:110px}
+}
 
 </style>
 </head>
@@ -3600,6 +3644,7 @@ function syncProgress(){
     if (faham[id]) n++;
     var a = $('.navbab a[data-nav="' + id + '"]');
     if (a) a.classList.toggle('done', !!faham[id]);
+    $$('.tchips a[data-step="' + id + '"]').forEach(function(c){ c.classList.toggle('done', !!faham[id]); });
   });
   $('#progN').textContent = n;
   $('#progBar i').style.width = (boxes.length ? (n / boxes.length * 100) : 0) + '%';
@@ -3620,35 +3665,117 @@ boxes.forEach(function(b){
 });
 syncProgress();
 
-/* ---------- Scrollspy ---------- */
+/* ---------- Paparan satu topik demi satu topik ---------- */
 var currentBab = null;
 var topiks = $$('.topik');
+var babs = $$('.bab');
 var navLinks = {};
 $$('.sidebar a[data-nav]').forEach(function(a){ navLinks[a.getAttribute('data-nav')] = a; });
+document.body.classList.add('paged');
+
+function stepLabel(st){
+  if (st.classList.contains('kuiz')) return 'Uji diri';
+  return $('.tag', st).textContent.split('–')[0];
+}
+function stepTitle(st){
+  if (st.classList.contains('kuiz')) return 'Uji diri: ' + $('.babhead h2', st.closest('.bab')).textContent;
+  return $('.tag', st).textContent.split('–')[0] + ' ' + $('.tt', st).textContent;
+}
+var allSteps = [];
+babs.forEach(function(bab){
+  var steps = $$('.topik, .kuiz', bab);
+  steps.forEach(function(st){ allSteps.push(st); });
+  var chips = document.createElement('nav');
+  chips.className = 'tchips';
+  chips.setAttribute('aria-label', 'Topik dalam ' + bab.getAttribute('data-name'));
+  chips.innerHTML = steps.map(function(st){
+    return '<a href="#' + st.id + '" data-step="' + st.id + '"' + (st.classList.contains('kuiz') ? ' class="q"' : '') + '>' + esc(stepLabel(st)) + '</a>';
+  }).join('');
+  $('.babhead', bab).insertAdjacentElement('afterend', chips);
+  var pager = document.createElement('nav');
+  pager.className = 'pager';
+  pager.setAttribute('aria-label', 'Navigasi topik');
+  bab.appendChild(pager);
+});
+
 function setActive(id){
   $$('.sidebar a.active').forEach(function(a){ a.classList.remove('active'); });
-  var a = navLinks[id];
+  var a = id ? navLinks[id] : null;
   if (a){
     a.classList.add('active');
     var sb = $('#sidebar'), r = a.getBoundingClientRect(), sr = sb.getBoundingClientRect();
-    if (r.top < sr.top + 60 || r.bottom > sr.bottom - 20) sb.scrollTop += r.top - sr.top - sr.height / 3;
+    if (sr.height && (r.top < sr.top + 60 || r.bottom > sr.bottom - 20)) sb.scrollTop += r.top - sr.top - sr.height / 3;
   }
-  var t = document.getElementById(id);
-  var bab = t ? t.closest('.bab') : null;
-  if (bab){ currentBab = bab; $('#printBabName').textContent = bab.getAttribute('data-name'); }
 }
-if ('IntersectionObserver' in window){
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){ if (en.isIntersecting) setActive(en.target.id); });
-  }, { rootMargin: '-25% 0px -65% 0px' });
-  topiks.concat($$('.kuiz'), $$('#kad')).forEach(function(t){ io.observe(t); });
-  var io2 = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      if (en.isIntersecting){ currentBab = en.target; $('#printBabName').textContent = en.target.getAttribute('data-name'); }
-    });
-  }, { rootMargin: '-40% 0px -55% 0px' });
-  $$('.bab').forEach(function(b){ io2.observe(b); });
+function renderPager(bab, st){
+  var i = allSteps.indexOf(st), prev = allSteps[i - 1], next = allSteps[i + 1];
+  var steps = $$('.topik, .kuiz', bab), pos = steps.indexOf(st) + 1;
+  function link(el, cls, lbl){
+    if (!el) return '<span class="pg ' + cls + ' none"></span>';
+    var other = el.closest('.bab') !== bab;
+    var title = other ? (cls === 'next' ? el.closest('.bab').getAttribute('data-name') : stepTitle(el)) : stepTitle(el);
+    return '<a class="pg ' + cls + '" href="#' + el.id + '"><small>' + (other ? (cls === 'next' ? 'Bab seterusnya' : 'Bab sebelum') : lbl) + '</small><span>' + esc(title) + '</span></a>';
+  }
+  var nextLink = next ? link(next, 'next', 'Seterusnya')
+    : '<a class="pg next" href="#kad"><small>Seterusnya</small><span>Kad imbas istilah</span></a>';
+  $('.pager', bab).innerHTML = link(prev, 'prev', 'Sebelum') + '<span class="pos">' + pos + ' / ' + steps.length + '</span>' + nextLink;
 }
+function scrollTop(el){
+  var y = el ? el.getBoundingClientRect().top + window.scrollY - (topbar.offsetHeight || 60) - 8 : 0;
+  window.scrollTo({ top: Math.max(0, y), left: 0, behavior: 'instant' });
+}
+function route(id, opt){
+  opt = opt || {};
+  var el = id ? document.getElementById(id) : null;
+  babs.forEach(function(b){ b.classList.remove('cur'); });
+  $$('.topik.cur, .kuiz.cur').forEach(function(x){ x.classList.remove('cur'); });
+  if (id === 'kad'){
+    document.body.setAttribute('data-view', 'kad');
+    setActive('kad'); currentBab = null;
+    if (!opt.noScroll) scrollTop(el);
+    return;
+  }
+  var bab = el ? (el.classList.contains('bab') ? el : el.closest('.bab')) : null;
+  if (!bab){
+    document.body.setAttribute('data-view', 'home');
+    setActive(null); currentBab = null;
+    if (!opt.noScroll){ if (el && id !== 'atas' && id !== 'kandungan') el.scrollIntoView({ behavior: 'instant' }); else window.scrollTo({ top: 0, behavior: 'instant' }); }
+    return;
+  }
+  var st = el.classList.contains('topik') || el.classList.contains('kuiz') ? el : (el.closest('.topik, .kuiz') || $('.topik', bab));
+  document.body.setAttribute('data-view', 'bab');
+  bab.classList.add('cur'); st.classList.add('cur');
+  currentBab = bab;
+  $('#printBabName').textContent = bab.getAttribute('data-name');
+  $$('.tchips a', bab).forEach(function(c){
+    var on = c.getAttribute('data-step') === st.id;
+    c.classList.toggle('cur', on);
+    if (on){ c.setAttribute('aria-current', 'step'); var row = c.parentNode; row.scrollLeft = c.offsetLeft - row.clientWidth / 2 + c.offsetWidth / 2; }
+    else c.removeAttribute('aria-current');
+  });
+  renderPager(bab, st);
+  setActive(st.id);
+  if (!opt.noScroll) scrollTop(bab);
+}
+function navigate(id, opt){
+  try{ history.pushState(null, '', '#' + id); }catch(e){}
+  route(id, opt);
+}
+document.addEventListener('click', function(e){
+  var a = e.target.closest('a[href^="#"]');
+  if (!a || a.closest('#results')) return;
+  var id = a.getAttribute('href').slice(1);
+  if (!id || (!document.getElementById(id) && id !== 'atas')) return;
+  e.preventDefault();
+  clearMarks();
+  navigate(id);
+});
+window.addEventListener('popstate', function(){ route(location.hash.slice(1)); });
+window.addEventListener('hashchange', function(){ route(location.hash.slice(1)); });
+syncProgress();
+route(location.hash.slice(1), { noScroll: !location.hash });
+try{ history.scrollRestoration = 'manual'; }catch(e){}
+if (location.hash) window.addEventListener('load', function(){ setTimeout(function(){ route(location.hash.slice(1)); }, 0); });
 
 /* ---------- Kembali ke atas ---------- */
 var totop = $('#totop');
@@ -3777,13 +3904,13 @@ function go(it){
   var words = q.value.trim().split(/\s+/);
   if (it.kind === 'kad'){
     kadShow(it.idx, true);
-    document.getElementById('kad').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+    navigate('kad');
     return;
   }
+  navigate(it.id, { noScroll: true });
   var first = markIn(it.el, words);
-  history.replaceState(null, '', '#' + it.id);
-  var target = first || it.el;
-  target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: first ? 'center' : 'start' });
+  if (first) first.scrollIntoView({ block: 'center', behavior: 'instant' });
+  else scrollTop(it.el.closest('.bab'));
 }
 
 /* ---------- Tajuk: nyahsulit Caesar ---------- */
